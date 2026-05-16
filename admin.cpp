@@ -289,7 +289,7 @@ public:
     vector<deThi>& getMaDe() { return maDe; }
     QuanLyThi() { maDe = {}; tenMon = "Chua dat ten"; }
 
-    void thietLapDeThi() {
+    void thietLapDeThi(int teacherId, const vector<ClassInfo>& classes, const vector<PhongThi>& examRooms) {
         de.id = nhapSo<int>("Ma de: ");
         cout << "Ten mon: ";
         getline(cin, de.tenMon);
@@ -298,25 +298,31 @@ public:
             de.loaiThi = nhapSo<int>("Loai bai thi (1. Chinh thuc | 2. On tap): ");
         } while (de.loaiThi != 1 && de.loaiThi != 2);
 
-        de.phongThiId = nhapSo<int>("Nhap ID phong thi: ");
-        string dsLopInput;
-        cout << "Nhap danh sach cac lop duoc thi, cach nhau boi dau phay (VD: 10A1, 10A2).\n";
-        cout << "Nhap 'ALL' de ap dung cho toan truong: ";
-        getline(cin, dsLopInput);
 
-        de.dsLopDuocThi.clear();
-        if (dsLopInput != "ALL" && dsLopInput != "all" && !dsLopInput.empty()) {
-            stringstream ss(dsLopInput);
-            string tenLop;
-            while (getline(ss, tenLop, ',')) {
-                // Xóa khoảng trắng thừa ở đầu và cuối tên lớp
-                tenLop.erase(0, tenLop.find_first_not_of(" \t"));
-                tenLop.erase(tenLop.find_last_not_of(" \t") + 1);
-
-                if (!tenLop.empty()) {
-                    de.dsLopDuocThi.push_back(tenLop);
-                }
+        bool validRoom = false;
+        do {
+            de.phongThiId = nhapSo<int>("Nhap ID phong thi: ");
+            for (const auto& r : examRooms) {
+                if (r.id == de.phongThiId) { validRoom = true; break; }
             }
+            if (!validRoom) {
+                SetColor(RED); cout << "Loi: Phong thi ID " << de.phongThiId << " chua duoc Admin tao! Vui long nhap lai.\n"; SetColor(WHITE);
+            }
+        } while (!validRoom);
+
+    
+        de.dsLopDuocThi.clear();
+        SetColor(LIGHT_CYAN); cout << "\nDang tu dong phan quyen thi cho cac lop ban phu trach...\n"; SetColor(WHITE);
+        bool hasClass = false;
+        for (const auto& c : classes) {
+            if (c.teacherId == teacherId) {
+                de.dsLopDuocThi.push_back(c.className);
+                SetColor(GREEN); cout << " + Da cap quyen cho lop: " << c.className << "\n"; SetColor(WHITE);
+                hasClass = true;
+            }
+        }
+        if (!hasClass) {
+            SetColor(YELLOW); cout << "Ban chua duoc phan cong phu trach lop nao! De thi se mo cho toan truong.\n"; SetColor(WHITE);
         }
 
         do {
@@ -324,6 +330,7 @@ public:
             de.batDau = parseDateTime(batDau);
             if (de.batDau == 0) cout << "Dinh dang khong hop le. Thu lai!\n";
         } while (de.batDau == 0);
+
         do {
             string ketThuc = inputLine("Nhap ngay gio ket thuc (YYYY-MM-DD HH:MM): ");
             de.ketThuc = parseDateTime(ketThuc);
@@ -334,20 +341,37 @@ public:
         } while (de.ketThuc == 0);
 
         de.locked = false;
-
         int m = nhapSo<int>("Nhap so cau hoi cua de: ");
         de.danhSachCauHoi.clear();
         for (int i = 0; i < m; i++) {
-            SetColor(LIGHT_YELLOW);
-            cout << "\n--- Nhap cau hoi thu " << i + 1 << " ---" << endl;
-            SetColor(RED);
+            SetColor(LIGHT_YELLOW); cout << "\n--- Nhap cau hoi thu " << i + 1 << " ---" << endl; SetColor(RED);
             de.themCauHoi();
         }
         maDe.push_back(de);
         saveDeThi();
-        SetColor(LIGHT_GREEN);
-        cout << "Tao de thi thanh cong!\n";
-        SetColor(BLUE);
+        SetColor(LIGHT_GREEN); cout << "Tao de thi thanh cong!\n"; SetColor(WHITE);
+    }
+
+    void menu(int teacherId, const vector<ClassInfo>& classes, const vector<PhongThi>& examRooms) {
+        int ch;
+        do {
+            VeKhungTieuDe("QUAN LY DE THI", YELLOW);
+            cout << "1. Tao de thi moi\n2. Sua cau hoi trong de\n3. Xoa cau hoi trong de\n4. Xem danh sach de thi\n0. Quay lai\n";
+            ch = nhapSo<int>("Chon: ");
+            switch (ch) {
+            case 1: thietLapDeThi(teacherId, classes, examRooms); break;
+            case 2: suaCauHoi(); break;
+            case 3: xoaCauHoi(); break;
+            case 4:
+                for (const auto& d : maDe) {
+                    string loai = (d.loaiThi == 1) ? "[Chinh thuc]" : "[On tap]";
+                    SetColor(CYAN);
+                    cout << "Ma de: " << d.id << " | Mon: " << d.tenMon << " " << loai << " | Thoi gian: " << d.thoiGianLamBai << "s | Phong thi: " << d.phongThiId << endl;
+                    SetColor(WHITE);
+                }
+                break;
+            }
+        } while (ch != 0);
     }
 
     void khoaMoDeThi() {
@@ -1057,7 +1081,8 @@ public:
         }
     }
 
-    void menu(vector<SinhVien>& students, QuanLyThi& thi) {
+    void menu(vector<SinhVien>& students, const vector<ClassInfo>& classes, const vector<PhongThi>& examRooms, QuanLyThi& thi) {
+        {
         int choice;
         do {
             SetColor(CYAN);
@@ -1098,7 +1123,7 @@ public:
 
             case 3:
                 SetColor(LIGHT_MAGENTA);
-                thi.menu();
+                thi.menu(this->id, classes, examRooms); 
                 SetColor(WHITE);
                 break;
 
@@ -1187,6 +1212,8 @@ private:
     int totalStudents;
 
 public:
+    vector<ClassInfo>& getClasses() { return classes; }
+    vector<PhongThi>& getRooms() { return examRooms; }
     void sortRanking() {
         sort(ranking.begin(), ranking.end(), [](const RankItem& a, const RankItem& b) {
             if (a.score != b.score) return a.score > b.score;
@@ -2339,9 +2366,11 @@ public:
 
                         GiangVien* gv = dynamic_cast<GiangVien*>(user);
 
-                        if (gv != nullptr) {
-                            gv->menu(adminSystem.getStudents(), thi);
-                        }
+                       
+                            if (gv != nullptr) {
+                                gv->menu(adminSystem.getStudents(), adminSystem.getClasses(), adminSystem.getRooms(), thi);
+                            }
+                        
                     }
                     else {
 
