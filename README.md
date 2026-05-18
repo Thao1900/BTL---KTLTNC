@@ -489,3 +489,42 @@ public:
         } while (choice != 0);
     }
 };
+// ========================== QUAN LY USER ==========================
+class QuanLyNguoiDung
+{
+private:
+    vector<Person*> users;
+
+public:
+    void them(Person* p) { users.push_back(p); }
+
+    Person* dangNhap()
+    {
+        string u, p;
+        cout << "User: ";
+        cin >> u;
+        cout << "Pass: ";
+        cin >> p;
+        cin.ignore();
+
+        for (auto user : users)
+        {
+            if (user->getUsername() == u && user->getPassword() == p)
+            {
+                return user;
+            }
+        }
+        return NULL;
+    }
+
+    vector<Person*>& layDanhSach() { return users; }
+};
+
+// ========================== RANK ITEM ==========================
+struct RankItem
+{
+    int id;
+    string fullName;
+    double score;
+};
+
